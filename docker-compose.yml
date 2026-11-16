@@ -1,0 +1,39 @@
+# Whole stack: MySQL + API + built frontend behind nginx (http://localhost:8080)
+services:
+  db:
+    image: mysql:8.0
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    environment:
+      MYSQL_DATABASE: docbase
+      MYSQL_USER: docbase
+      MYSQL_PASSWORD: docbase
+      MYSQL_ROOT_PASSWORD: root
+    volumes: [dbdata:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      retries: 20
+  api:
+    build: ./backend
+    environment:
+      APP_ENV: production
+      SECRET_KEY: change-this-secret-before-deploying-0000
+      JWT_SECRET_KEY: change-this-jwt-secret-before-deploying-0000
+      DATABASE_URL: mysql+pymysql://docbase:docbase@db:3306/docbase?charset=utf8mb4
+      STORAGE: sql
+      UPLOAD_DIR: /data/uploads
+      COOKIE_SECURE: "0"   # set to 1 once served over HTTPS
+      FLASK_APP: wsgi:app
+    depends_on:
+      db: {condition: service_healthy}
+    volumes: [uploads:/data/uploads]
+  web:
+    build: ./frontend
+    depends_on: [api]
+    ports: ["8080:80"]
+volumes:
+  dbdata:
+  uploads:
+# first run:  docker compose up -d --build
+#             docker compose exec api flask init-db
+#             docker compose exec api flask seed --password 'choose-a-password'

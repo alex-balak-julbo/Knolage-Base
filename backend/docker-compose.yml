@@ -1,0 +1,26 @@
+services:
+  db:
+    image: mysql:8.0
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    environment:
+      MYSQL_DATABASE: docbase
+      MYSQL_USER: docbase
+      MYSQL_PASSWORD: docbase
+      MYSQL_ROOT_PASSWORD: root
+    volumes: [dbdata:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      retries: 20
+  api:
+    build: .
+    env_file: .env
+    environment:
+      FLASK_APP: wsgi:app
+    depends_on:
+      db: {condition: service_healthy}
+    volumes: [uploads:/data/uploads]
+    ports: ["8000:8000"]
+volumes:
+  dbdata:
+  uploads:
